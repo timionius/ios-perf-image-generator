@@ -1,4 +1,7 @@
+"""Logo drawing functionality for different frameworks."""
+
 import math
+from typing import Any, Union
 
 import svgwrite
 from PIL import ImageDraw
@@ -8,12 +11,7 @@ class LogoDrawer:
     """Handles drawing framework-specific logos."""
 
     def draw_logo(
-        self,
-        draw: ImageDraw,
-        size: int,
-        color: str,
-        framework: str,
-        simplified: bool = False,
+        self, draw: Any, size: int, color: str, framework: str, simplified: bool = False
     ):
         """Draw framework-specific logo.
 
@@ -40,7 +38,7 @@ class LogoDrawer:
                 fill=color,
             )
 
-    def _draw_swiftui_logo(self, draw: ImageDraw, size: int, color: str, center: int):
+    def _draw_swiftui_logo(self, draw: Any, size: int, color: str, center: int):
         """Draw SwiftUI-style logo."""
         radius = size // 3
 
@@ -62,7 +60,7 @@ class LogoDrawer:
         draw.line(points, fill=color, width=size // 50)
 
     def _draw_react_logo(
-        self, draw: ImageDraw, size: int, color: str, center: int, simplified: bool
+        self, draw: Any, size: int, color: str, center: int, simplified: bool
     ):
         """Draw React-style logo."""
         orbit_radius = size // 3
@@ -104,7 +102,7 @@ class LogoDrawer:
         )
 
     def _draw_flutter_logo(
-        self, draw: ImageDraw, size: int, color: str, center: int, simplified: bool
+        self, draw: Any, size: int, color: str, center: int, simplified: bool
     ):
         """Draw Flutter-style logo."""
         bar_width = size // 4
@@ -186,7 +184,7 @@ class LogoDrawer:
 
         dwg.save()
 
-    def _create_swiftui_svg(self, dwg, size: int, color: str, center: int):
+    def _create_swiftui_svg(self, dwg: Any, size: int, color: str, center: int):
         """Create SwiftUI SVG."""
         radius = size // 3
 
@@ -225,7 +223,7 @@ class LogoDrawer:
             )
         )
 
-    def _create_react_svg(self, dwg, size: int, color: str, center: int):
+    def _create_react_svg(self, dwg: Any, size: int, color: str, center: int):
         """Create React SVG."""
         orbit_radius = size // 3
         electron_radius = size // 12
@@ -247,7 +245,7 @@ class LogoDrawer:
         # Center nucleus
         dwg.add(dwg.circle(center=(center, center), r=electron_radius, fill=color))
 
-    def _create_flutter_svg(self, dwg, size: int, color: str, center: int):
+    def _create_flutter_svg(self, dwg: Any, size: int, color: str, center: int):
         """Create Flutter SVG."""
         bar_width = size // 4
         bar_height = size // 12

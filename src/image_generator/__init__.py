@@ -4,8 +4,7 @@ __version__ = "1.0.0"
 __author__ = "Performance Testing Team"
 
 from .config import GenerationConfig
-from .converters import ImageConverter
 from .generator import ImageGenerator
 from .logos import LogoDrawer
 
-__all__ = ["ImageGenerator", "LogoDrawer", "ImageConverter", "GenerationConfig"]
+__all__ = ["ImageGenerator", "LogoDrawer", "GenerationConfig"]

@@ -31,9 +31,9 @@ def main():
         "--formats",
         "-f",
         nargs="+",
-        choices=["webp", "pdf", "svg", "png"],
-        default=["webp", "pdf", "svg", "png"],
-        help="Formats to generate (default: all)",
+        choices=["webp", "svg", "png"],  # Removed PDF
+        default=["webp", "svg", "png"],  # Updated default
+        help="Formats to generate (default: webp svg png)",
     )
 
     args = parser.parse_args()
@@ -53,6 +53,14 @@ def main():
         print(f"📁 Output directory: {results['metrics']['output_dir']}")
         print(f"📊 Files generated: {results['metrics']['files_generated']}")
         print(f"⏱️  Total time: {results['metrics']['total_time_ms']:.2f}ms")
+
+        # Print generated files
+        print("\n📄 Generated files:")
+        for format_type, files in results["results"].items():
+            if files and isinstance(files, list):
+                print(f"\n  {format_type.upper()}:")
+                for file_info in files:
+                    print(f"    - {file_info['path']} ({file_info['size_kb']} KB)")
 
         return 0
     except Exception as e:

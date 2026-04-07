@@ -5,12 +5,11 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from PIL import Image, ImageDraw
 
 from .config import GenerationConfig
-from .converters import ImageConverter
 from .logos import LogoDrawer
 from .utils import FileUtils, MetricsCollector
 
@@ -28,7 +27,6 @@ class ImageGenerator:
         """
         self.config = config or GenerationConfig()
         self.logo_drawer = LogoDrawer()
-        self.converter = ImageConverter()
         self.metrics = MetricsCollector()
         self.file_utils = FileUtils()
 
@@ -46,7 +44,6 @@ class ImageGenerator:
         results: Dict[str, Any] = {
             "webp": [],
             "svg": [],
-            "pdf": [],
             "png": [],
             "asset_catalogs": [],
         }
@@ -58,14 +55,8 @@ class ImageGenerator:
         if "svg" in self.config.formats:
             results["svg"] = self._generate_svg_images()
 
-        if "pdf" in self.config.formats:
-            results["pdf"] = self._generate_pdf_images()
-
         if "png" in self.config.formats:
             results["png"] = self._generate_png_fallback()
-
-        # Generate asset catalogs
-        results["asset_catalogs"] = self._generate_asset_catalogs()
 
         total_time = self.metrics.end_timer("total")
 
@@ -80,13 +71,13 @@ class ImageGenerator:
             },
         }
 
-    def _generate_webp_images(self) -> List[Dict[str, Any]]:
+    def _generate_webp_images(self) -> List[Dict[str, Union[str, float, int]]]:
         """Generate WebP images for all frameworks.
 
         Returns:
             List of generated file information.
         """
-        generated = []
+        generated: List[Dict[str, Union[str, float, int]]] = []
 
         for framework, color in self.FRAMEWORKS.items():
             self.metrics.start_timer(f"webp_{framework}")
@@ -136,13 +127,13 @@ class ImageGenerator:
 
         return generated
 
-    def _generate_svg_images(self) -> List[Dict[str, Any]]:
+    def _generate_svg_images(self) -> List[Dict[str, Union[str, float, int]]]:
         """Generate SVG vector images for all frameworks.
 
         Returns:
             List of generated file information.
         """
-        generated = []
+        generated: List[Dict[str, Union[str, float, int]]] = []
 
         for framework, color in self.FRAMEWORKS.items():
             self.metrics.start_timer(f"svg_{framework}")
@@ -169,51 +160,13 @@ class ImageGenerator:
 
         return generated
 
-    def _generate_pdf_images(self) -> List[Dict[str, Any]]:
-        """Generate PDF vector images from SVGs.
-
-        Returns:
-            List of generated file information.
-        """
-        generated = []
-
-        for framework in self.FRAMEWORKS.keys():
-            self.metrics.start_timer(f"pdf_{framework}")
-
-            svg_path = os.path.join(
-                self.config.output_dir, f"test_image_vector_{framework}.svg"
-            )
-            pdf_path = os.path.join(
-                self.config.output_dir, f"test_image_vector_{framework}.pdf"
-            )
-
-            if os.path.exists(svg_path):
-                success = self.converter.svg_to_pdf(svg_path, pdf_path)
-                if success:
-                    generation_time = self.metrics.end_timer(f"pdf_{framework}")
-                    file_size = os.path.getsize(pdf_path) / 1024
-
-                    generated.append(
-                        {
-                            "framework": framework,
-                            "format": "pdf",
-                            "path": pdf_path,
-                            "size_kb": round(file_size, 2),
-                            "generation_time_ms": round(generation_time, 2),
-                        }
-                    )
-            else:
-                self.metrics.end_timer(f"pdf_{framework}")  # Still end timer
-
-        return generated
-
-    def _generate_png_fallback(self) -> List[Dict[str, Any]]:
+    def _generate_png_fallback(self) -> List[Dict[str, Union[str, float, int]]]:
         """Generate PNG fallback images for React Native.
 
         Returns:
             List of generated file information.
         """
-        generated = []
+        generated: List[Dict[str, Union[str, float, int]]] = []
         scaled_size = self.config.image_size * 2
 
         for framework, color in self.FRAMEWORKS.items():
@@ -248,42 +201,3 @@ class ImageGenerator:
             )
 
         return generated
-
-    def _generate_asset_catalogs(self) -> List[str]:
-        """Generate iOS asset catalog structure.
-
-        Returns:
-            List of created asset catalog paths.
-        """
-        catalogs = []
-        assets_dir = os.path.join(self.config.output_dir, "Assets.xcassets")
-
-        for framework in self.FRAMEWORKS.keys():
-            imageset_dir = os.path.join(assets_dir, f"{framework}_image.imageset")
-            os.makedirs(imageset_dir, exist_ok=True)
-
-            # Copy PDF if exists
-            pdf_source = os.path.join(
-                self.config.output_dir, f"test_image_vector_{framework}.pdf"
-            )
-            pdf_dest = os.path.join(imageset_dir, f"{framework}_image.pdf")
-
-            if os.path.exists(pdf_source):
-                shutil.copy2(pdf_source, pdf_dest)
-
-            # Create Contents.json
-            contents = {
-                "images": [
-                    {"idiom": "universal", "filename": f"{framework}_image.pdf"}
-                ],
-                "info": {"author": "xcode", "version": 1},
-                "properties": {"preserves-vector-representation": True},
-            }
-
-            contents_path = os.path.join(imageset_dir, "Contents.json")
-            with open(contents_path, "w") as f:
-                json.dump(contents, f, indent=2)
-
-            catalogs.append(imageset_dir)
-
-        return catalogs

@@ -15,10 +15,10 @@ class GenerationConfig:
 
     def __post_init__(self):
         if self.formats is None:
-            self.formats = ["webp", "pdf", "svg", "png"]
+            self.formats = ["webp", "svg", "png"]  # Removed PDF
 
         # Validate formats
-        valid_formats = {"webp", "pdf", "svg", "png"}
+        valid_formats = {"webp", "svg", "png"}  # Removed PDF
         for fmt in self.formats:
             if fmt not in valid_formats:
                 raise ValueError(
