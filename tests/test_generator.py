@@ -1,0 +1,193 @@
+"""Tests for the main image generator."""
+
+import os
+import pytest
+import tempfile
+from PIL import Image
+from src.image_generator.generator import ImageGenerator, GenerationConfig
+
+
+class TestImageGenerator:
+    """Test suite for ImageGenerator class."""
+    
+    def test_initialization_default_config(self):
+        """Test generator initialization with default config."""
+        generator = ImageGenerator()
+        assert generator.config.image_size == 300
+        assert generator.config.quality == 95
+        assert generator.config.output_dir == "output"
+        assert "webp" in generator.config.formats
+        
+    def test_initialization_custom_config(self):
+        """Test generator initialization with custom config."""
+        config = GenerationConfig(
+            image_size=512,
+            output_dir="custom_output",
+            quality=85,
+            formats=["webp", "png"]
+        )
+        generator = ImageGenerator(config)
+        assert generator.config.image_size == 512
+        assert generator.config.output_dir == "custom_output"
+        assert generator.config.quality == 85
+        assert generator.config.formats == ["webp", "png"]
+    
+    def test_frameworks_constant(self):
+        """Test FRAMEWORKS constant contains expected frameworks."""
+        assert "swiftui" in ImageGenerator.FRAMEWORKS
+        assert "react" in ImageGenerator.FRAMEWORKS
+        assert "flutter" in ImageGenerator.FRAMEWORKS
+        assert ImageGenerator.FRAMEWORKS["swiftui"] == "#0055FF"
+        assert ImageGenerator.FRAMEWORKS["react"] == "#61DAFB"
+        assert ImageGenerator.FRAMEWORKS["flutter"] == "#45D1FD"
+    
+    def test_generate_webp_images(self, tmp_path):
+        """Test WebP image generation."""
+        config = GenerationConfig(output_dir=str(tmp_path))
+        generator = ImageGenerator(config)
+        results = generator._generate_webp_images()
+        
+        assert len(results) == 3  # Three frameworks
+        for result in results:
+            assert result["format"] == "webp"
+            assert result["framework"] in ["swiftui", "react", "flutter"]
+            assert os.path.exists(result["path"])
+            assert result["size_kb"] > 0
+            assert result["generation_time_ms"] >= 0
+            
+            # Verify image dimensions
+            img = Image.open(result["path"])
+            assert img.size[0] == config.image_size
+            assert img.size[1] == config.image_size
+    
+    def test_generate_svg_images(self, tmp_path):
+        """Test SVG image generation."""
+        config = GenerationConfig(output_dir=str(tmp_path))
+        generator = ImageGenerator(config)
+        results = generator._generate_svg_images()
+        
+        assert len(results) == 3
+        for result in results:
+            assert result["format"] == "svg"
+            assert os.path.exists(result["path"])
+            assert result["size_kb"] > 0
+            
+            # Verify SVG file content
+            with open(result["path"], 'r') as f:
+                content = f.read()
+                assert "<svg" in content
+                assert "xmlns" in content
+    
+    def test_generate_pdf_images(self, tmp_path):
+        """Test PDF image generation from SVGs."""
+        # First generate SVG
+        config = GenerationConfig(output_dir=str(tmp_path), formats=["svg"])
+        generator = ImageGenerator(config)
+        generator._generate_svg_images()
+        
+        # Then generate PDF
+        config_pdf = GenerationConfig(output_dir=str(tmp_path), formats=["pdf"])
+        generator_pdf = ImageGenerator(config_pdf)
+        results = generator_pdf._generate_pdf_images()
+        
+        assert len(results) == 3
+        for result in results:
+            assert result["format"] == "pdf"
+            assert os.path.exists(result["path"])
+            assert result["size_kb"] > 0
+    
+    def test_generate_png_fallback(self, tmp_path):
+        """Test PNG fallback generation."""
+        config = GenerationConfig(output_dir=str(tmp_path))
+        generator = ImageGenerator(config)
+        results = generator._generate_png_fallback()
+        
+        assert len(results) == 3
+        for result in results:
+            assert result["format"] == "png"
+            assert os.path.exists(result["path"])
+            assert result["size_kb"] > 0
+            
+            # Verify image dimensions (2x size for Retina)
+            img = Image.open(result["path"])
+            assert img.size[0] == config.image_size * 2
+            assert img.size[1] == config.image_size * 2
+    
+    def test_generate_asset_catalogs(self, tmp_path):
+        """Test iOS asset catalog generation."""
+        # First generate PDF
+        config = GenerationConfig(output_dir=str(tmp_path), formats=["pdf"])
+        generator = ImageGenerator(config)
+        generator._generate_svg_images()
+        generator._generate_pdf_images()
+        
+        # Then generate asset catalogs
+        catalogs = generator._generate_asset_catalogs()
+        
+        assert len(catalogs) == 3
+        for catalog in catalogs:
+            assert os.path.exists(catalog)
+            assert os.path.exists(os.path.join(catalog, "Contents.json"))
+            
+            # Verify Contents.json structure
+            import json
+            with open(os.path.join(catalog, "Contents.json"), 'r') as f:
+                contents = json.load(f)
+                assert "images" in contents
+                assert "info" in contents
+                assert contents["properties"]["preserves-vector-representation"] is True
+    
+    def test_generate_all_formats(self, tmp_path):
+        """Test complete generation of all formats."""
+        config = GenerationConfig(
+            output_dir=str(tmp_path),
+            formats=["webp", "svg", "pdf", "png"]
+        )
+        generator = ImageGenerator(config)
+        result = generator.generate_all()
+        
+        assert "results" in result
+        assert "metrics" in result
+        assert result["metrics"]["files_generated"] > 0
+        assert result["metrics"]["total_time_ms"] > 0
+        
+        # Verify all expected files exist
+        for framework in ["swiftui", "react", "flutter"]:
+            assert os.path.exists(os.path.join(str(tmp_path), f"test_image_{framework}.webp"))
+            assert os.path.exists(os.path.join(str(tmp_path), f"test_image_vector_{framework}.svg"))
+            assert os.path.exists(os.path.join(str(tmp_path), f"test_image_vector_{framework}.pdf"))
+            assert os.path.exists(os.path.join(str(tmp_path), f"test_image_vector_{framework}.png"))
+    
+    def test_invalid_output_directory(self):
+        """Test handling of invalid output directory (read-only filesystem)."""
+        config = GenerationConfig(output_dir="/invalid/path/that/should/not/work")
+        generator = ImageGenerator(config)
+    
+        # This should raise an OSError or PermissionError
+        with pytest.raises(OSError):
+            generator.file_utils.ensure_dir(config.output_dir)
+    
+    @pytest.mark.parametrize("size", [100, 200, 300, 512])
+    def test_different_image_sizes(self, tmp_path, size):
+        """Test image generation with various sizes."""
+        config = GenerationConfig(output_dir=str(tmp_path), image_size=size)
+        generator = ImageGenerator(config)
+        results = generator._generate_webp_images()
+        
+        for result in results:
+            img = Image.open(result["path"])
+            assert img.size[0] == size
+            assert img.size[1] == size
+    
+    @pytest.mark.parametrize("quality", [75, 85, 95])
+    def test_different_quality_settings(self, tmp_path, quality):
+        """Test WebP generation with different quality settings."""
+        config = GenerationConfig(output_dir=str(tmp_path), quality=quality)
+        generator = ImageGenerator(config)
+        results = generator._generate_webp_images()
+        
+        for result in results:
+            assert result["size_kb"] > 0
+            # Higher quality should generally mean larger file size
+            if quality == 95:
+                assert result["size_kb"] > 0  # Just verify it exists

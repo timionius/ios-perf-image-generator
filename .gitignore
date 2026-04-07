@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+bin/
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.benchmarks/
+test-results.xml
+
+# Output
+output/
+test_output/
+*.webp
+*.pdf
+*.svg
+*.png
+!test_images/**/*.webp
+!test_images/**/*.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# macOS
+.AppleDouble
+.LSOverride
+._*
+
+# Logs
+*.log
+
+# Benchmark results
+benchmark_results.json
