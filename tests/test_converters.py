@@ -1,8 +1,14 @@
 """Tests for image converter functionality."""
 
 import os
+import sys
+from pathlib import Path
 
 import pytest
+
+# Add src directory to path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from PIL import Image
 
 from src.image_generator.converters import ImageConverter
@@ -17,6 +23,10 @@ class TestImageConverter:
 
     def test_svg_to_pdf(self, tmp_path):
         """Test SVG to PDF conversion."""
+        # Skip if cairosvg is not available
+        if not self.converter.cairosvg_available:
+            pytest.skip("cairosvg not installed, skipping PDF test")
+
         # Create a simple SVG
         svg_path = tmp_path / "test.svg"
         svg_content = """<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">

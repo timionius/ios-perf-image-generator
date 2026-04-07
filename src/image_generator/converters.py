@@ -9,6 +9,20 @@ from PIL import Image
 class ImageConverter:
     """Handles image format conversions."""
 
+    def __init__(self):
+        """Initialize the converter, checking for optional dependencies."""
+        self.cairosvg_available = self._check_cairosvg()
+
+    def _check_cairosvg(self) -> bool:
+        """Check if cairosvg is available."""
+        try:
+            import cairosvg
+
+            return True
+        except ImportError:
+            print("Warning: cairosvg not installed. PDF generation will be disabled.")
+            return False
+
     def svg_to_pdf(self, svg_path: str, pdf_path: str) -> bool:
         """Convert SVG to PDF.
 
@@ -19,11 +33,15 @@ class ImageConverter:
         Returns:
             True if successful, False otherwise
         """
+        if not self.cairosvg_available:
+            print(f"Skipping PDF generation: cairosvg not available")
+            return False
+
         try:
             import cairosvg
 
             cairosvg.svg2pdf(url=svg_path, write_to=pdf_path)
-            return True
+            return os.path.exists(pdf_path)
         except Exception as e:
             print(f"Error converting SVG to PDF: {e}")
             return False
