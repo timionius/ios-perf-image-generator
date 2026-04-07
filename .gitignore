@@ -5,6 +5,7 @@ __pycache__/
 *.so
 .Python
 bin/
+share/
 env/
 venv/
 ENV/

@@ -43,7 +43,13 @@ class ImageGenerator:
         # Create output directory
         self.file_utils.ensure_dir(self.config.output_dir)
 
-        results = {"webp": [], "svg": [], "pdf": [], "png": [], "asset_catalogs": []}
+        results: Dict[str, Any] = {
+            "webp": [],
+            "svg": [],
+            "pdf": [],
+            "png": [],
+            "asset_catalogs": [],
+        }
 
         # Generate each format
         if "webp" in self.config.formats:
