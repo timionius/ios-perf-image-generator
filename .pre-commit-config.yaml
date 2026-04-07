@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.11.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=88]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: [--profile=black, --line-length=88]
+  - repo: https://github.com/pycqa/pylint
+    rev: v3.0.2
+    hooks:
+      - id: pylint
+        args: [--fail-under=7.0, --exit-zero, --rcfile=pyproject.toml]

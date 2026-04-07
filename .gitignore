@@ -33,6 +33,9 @@ htmlcov/
 .benchmarks/
 test-results.xml
 
+# Black
+.black_cache/
+
 # Output
 output/
 test_output/
