@@ -38,7 +38,7 @@ jobs:
         export PYTHONPATH="${PYTHONPATH}:${GITHUB_WORKSPACE}"
         pytest tests/ -v -n auto --cov=src/image_generator --cov-report=xml --cov-report=term --cov-fail-under=50 --maxfail=5
     
-    - name: Upload coverage
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
@@ -59,28 +59,27 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
+    
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+    
     - name: Install dependencies
       run: |
-        pip install black pylint mypy bandit
-    - name: Run Black (check only, don't fail)
-      run: |
-        black --check src/ tests/ --verbose || true
-    - name: Run Black (auto-format on push to main)
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        black src/ tests/
-        git config user.name github-actions
-        git config user.email github-actions@github.com
-        git add .
-        git diff --quiet && git diff --staged --quiet || git commit -m "Auto-format code with Black"
-        git push
+        pip install black pylint mypy bandit isort
+    
+    - name: Check Black formatting
+      run: black --check src/ tests/ --verbose --line-length=88
+    
+    - name: Check isort imports
+      run: isort --check-only --profile black --line-length=88 src/ tests/
+    
     - name: Run Pylint
       run: pylint src/ --fail-under=7.0 --exit-zero
-    - name: Run MyPy
+    
+    - name: Run MyPy type checking
       run: mypy src/ --ignore-missing-imports --no-strict-optional
-    - name: Run Bandit security
+    
+    - name: Run Bandit security check
       run: bandit -r src/ -ll
